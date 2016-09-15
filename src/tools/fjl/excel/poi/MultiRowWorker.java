@@ -217,7 +217,7 @@ public class MultiRowWorker extends BaseTool {
 
 					targetCell = targetRow.createCell(targetColumnIndex++);
 					if (sourceCell != null) {
-						CellCopier.copy(targetCell, sourceCell, evaluator);
+						CellCopier.copy(targetWorkbook, targetCell, sourceCell, evaluator);
 					} else {
 						targetCell.setCellValue(error);
 					}
@@ -232,7 +232,7 @@ public class MultiRowWorker extends BaseTool {
 
 					targetCell = targetRow.createCell(targetColumnIndex++);
 					if (sourceCell != null) {
-						CellCopier.copy(targetCell, sourceCell, evaluator);
+						CellCopier.copy(targetWorkbook, targetCell, sourceCell, evaluator);
 					} else {
 						targetCell.setCellValue(error);
 					}

@@ -9,13 +9,12 @@ import java.util.ArrayList;
 import java.util.regex.Pattern;
 
 import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.FormulaEvaluator;
 import org.apache.poi.ss.usermodel.Row;
 
+import tools.fjl.excel.BadParamException;
 import tools.fjl.excel.CellIndex;
 import tools.fjl.excel.Logger;
-import tools.fjl.excel.BadParamException;
 
 public class CellListWorker extends BaseTool {
 
@@ -130,11 +129,7 @@ public class CellListWorker extends BaseTool {
 
 			targetCell = targetRow.createCell(targetColumnIndex++);
 			if (sourceCell != null) {
-				CellCopier.copy(targetCell, sourceCell, evaluator);
-				CellStyle sourceStyle = sourceCell.getCellStyle();
-				CellStyle targetStyle = targetWorkbook.createCellStyle();
-				targetStyle.setDataFormat(sourceStyle.getDataFormat());
-				targetCell.setCellStyle(targetStyle);
+				CellCopier.copy(targetWorkbook, targetCell, sourceCell, evaluator);
 			} else {
 				targetCell.setCellValue(error);
 			}

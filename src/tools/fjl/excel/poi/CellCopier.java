@@ -5,12 +5,15 @@ import java.util.Date;
 
 import org.apache.poi.hssf.usermodel.HSSFDateUtil;
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.CellValue;
+import org.apache.poi.ss.usermodel.DataFormat;
 import org.apache.poi.ss.usermodel.FormulaEvaluator;
+import org.apache.poi.ss.usermodel.Workbook;
 
 public class CellCopier {
 
-	public static void copy(Cell target, Cell source, FormulaEvaluator evaluator) {
+	public static void copy(Workbook targetBook, Cell target, Cell source, FormulaEvaluator evaluator) {
 		switch (source.getCellType()) {
 		case Cell.CELL_TYPE_BLANK:
 			break;
@@ -28,30 +31,8 @@ public class CellCopier {
 			break;
 
 		case Cell.CELL_TYPE_NUMERIC:
-			if (HSSFDateUtil.isCellDateFormatted(source)) {
-				Date date = source.getDateCellValue();
-				Calendar cal = Calendar.getInstance();
-				final int thisYear = cal.get(Calendar.YEAR);
-				final long currentTime = cal.getTimeInMillis();
-
-				cal.setTime(date);
-				final int year = cal.get(Calendar.YEAR);
-				if (year < 1970) {
-					cal.set(Calendar.YEAR, thisYear);
-					final long time = cal.getTimeInMillis();
-					if (time > currentTime) {
-						cal.set(Calendar.YEAR, thisYear - 1);
-					}
-				}
-				date = cal.getTime();
-
-				target.setCellValue(date);
-				target.setCellType(source.getCellType());
-				int type = target.getCellType();
-				assert type == 0;
-			} else {
-				target.setCellValue(source.getNumericCellValue());
-			}
+			copyNumericValue(targetBook, target, source);
+			copyNumericStyle(targetBook, target, source);
 			break;
 
 		case Cell.CELL_TYPE_STRING:
@@ -61,6 +42,49 @@ public class CellCopier {
 		default:
 			break;
 		}
+	}
+
+	private static void copyNumericValue(Workbook targetBook, Cell target, Cell source) {
+		if (HSSFDateUtil.isCellDateFormatted(source)) {
+			Date date = source.getDateCellValue();
+
+			Calendar cal = Calendar.getInstance();
+			final long currentTime = cal.getTimeInMillis();
+			final int thisYear = cal.get(Calendar.YEAR);
+			cal.setTime(date);
+			final int sourceYear = cal.get(Calendar.YEAR);
+			if (sourceYear < 1970) {
+				cal.set(Calendar.YEAR, thisYear);
+				final long time = cal.getTimeInMillis();
+				if (time > currentTime) {
+					cal.set(Calendar.YEAR, thisYear - 1);
+				}
+			}
+
+			date = cal.getTime();
+			target.setCellValue(date);
+		} else {
+			target.setCellValue(source.getNumericCellValue());
+		}
+	}
+
+	private static void copyNumericStyle(Workbook targetBook, Cell target, Cell source) {
+		final CellStyle sourceStyle = source.getCellStyle();
+		final String sourceFormat = sourceStyle.getDataFormatString();
+
+		final short targetFormatIndex;
+		if (sourceFormat == null || "".equals(sourceFormat)) {
+			final short sourceFormatIndex = sourceStyle.getDataFormat();
+			targetFormatIndex = sourceFormatIndex;
+		} else {
+			DataFormat targetDataFormat = targetBook.createDataFormat();
+			targetFormatIndex = targetDataFormat.getFormat(sourceFormat);
+		}
+
+		CellStyle targetStyle = targetBook.createCellStyle();
+		targetStyle.setDataFormat(targetFormatIndex);
+
+		target.setCellStyle(targetStyle);
 	}
 
 	public static void copyFormulaValue(Cell target, CellValue source) {
