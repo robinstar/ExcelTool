@@ -76,20 +76,23 @@ public class CellListWorker extends BaseTool {
 
 	@Override
 	void work() {
+		File file = new File(source.getWorkbookName());
+		final String simpleName = file.getName();
+		Logger.log(simpleName);
+
 		FormulaEvaluator evaluator;
 		try {
 			evaluator = PoiUtils.getFormulaEvaluator(sourceWorkbook);
 		} catch (PoiException e) {
-			return; // TODO
+			Logger.log("getFormulaEvaluator error");
+			Logger.log(e);
+			return;
 		}
 
 		int lastRowIndexInTarget = targetSheet.getLastRowNum();
 		final int targetRowIndex = lastRowIndexInTarget + 1;
 		Row targetRow = targetSheet.createRow(targetRowIndex);
-		File file = new File(source.getWorkbookName());
-		final String simpleName = file.getName();
-		Logger.log(simpleName);
-
+		
 		int targetColumnIndex = 0;
 		targetRow.createCell(targetColumnIndex++).setCellValue(simpleName);
 

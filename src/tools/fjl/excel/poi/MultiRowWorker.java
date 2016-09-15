@@ -16,12 +16,14 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellValue;
 import org.apache.poi.ss.usermodel.FormulaEvaluator;
 import org.apache.poi.ss.usermodel.Row;
 
 import com.robin.util.StringUtils;
 
 import tools.fjl.excel.CellIndex;
+import tools.fjl.excel.Logger;
 import tools.fjl.excel.BadParamException;
 
 public class MultiRowWorker extends BaseTool {
@@ -156,36 +158,41 @@ public class MultiRowWorker extends BaseTool {
 			String errorLog = String.format("there is no such shell  %s in %s", source.getSheetName(),
 					source.getWorkbookName());
 			System.err.println(errorLog);
+			Logger.log(errorLog);
 			return;
 		}
+
+		File file = new File(source.getWorkbookName());
+		final String simpleName = file.getName();
+		Logger.log(simpleName);
 
 		FormulaEvaluator evaluator;
 		try {
 			evaluator = PoiUtils.getFormulaEvaluator(sourceWorkbook);
 		} catch (PoiException e) {
-			return; // TODO
+			Logger.log("getFormulaEvaluator error");
+			Logger.log(e);
+			return;
 		}
-
-		File file = new File(source.getWorkbookName());
-		final String simpleName = file.getName();
 
 		final int checkedColumn = checkedColumnIndexs.size() > 0 ? checkedColumnIndexs.get(0) : UNDIFINED;
 
 		for (int rowIndex : rowIndexs) {
 			Row row = sourceSheet.getRow(rowIndex);
-			if (row == null)
+			final int rowMark = CellIndex.indexToRow(rowIndex);
+			Logger.log("copy row :" + rowMark);
+			if (row == null) {
+				Logger.log("no such row :" + rowMark);
 				continue;
+			}
 
 			if (checkedColumn != UNDIFINED) {
 				Cell checkedCell = row.getCell(checkedColumn);
-				if (checkedCell == null)
+				final String checkedColumnMark = CellIndex.indexToColumn(checkedColumn);
+				final String checkedCellMark = checkedColumnMark + rowMark;
+				if (!checkCell(checkedCell, checkedCellMark, evaluator)) {
 					continue;
-
-				if (checkedCell.getCellType() != Cell.CELL_TYPE_STRING)
-					continue;
-				String cellValue = checkedCell.getStringCellValue();
-				if (StringUtils.isEmpty(cellValue))
-					continue;
+				}
 			}
 
 			int lastRowIndexInTarget = targetSheet.getLastRowNum();
@@ -241,5 +248,57 @@ public class MultiRowWorker extends BaseTool {
 				}
 			}
 		}
+	}
+
+	private boolean checkCell(Cell cell, String cellMark, FormulaEvaluator evaluator) {
+		boolean checked;
+		String log;
+
+		if (cell == null) {
+			log = String.format("no checked cell :%s, skip", cellMark);
+			Logger.log(log);
+			return false;
+		}
+
+		final int cellType = cell.getCellType();
+		switch (cellType) {
+		case Cell.CELL_TYPE_FORMULA:
+			CellValue cellValue = evaluator.evaluate(cell);
+			final int cellValueType = cellValue.getCellType();
+			if (cellValueType == Cell.CELL_TYPE_STRING) {
+				String value = cellValue.getStringValue();
+				final boolean empty = StringUtils.isEmpty(value);
+				if (empty) {
+					log = String.format("string formula cell :%s, cell is empty :%s, skip", cellMark, value);
+					checked = false;
+				} else {
+					log = String.format("string formula cell :%s, cell value is :%s", cellMark, value);
+					checked = true;
+				}
+			} else {
+				log = String.format("formula cell :%s, unspport CellValue type :%d, skip", cellMark, cellValueType);
+				checked = false;
+			}
+			break;
+
+		case Cell.CELL_TYPE_STRING:
+			String stringCellValue = cell.getStringCellValue();
+			if (StringUtils.isEmpty(stringCellValue)) {
+				log = String.format("string cell :%s, cell is empty :%s, skip", cellMark, stringCellValue);
+				checked = false;
+			} else {
+				log = String.format("string cell :%s, cell value is :%s", cellMark, stringCellValue);
+				checked = true;
+			}
+			break;
+
+		default:
+			log = String.format("unsupport cell type :%d, skip", cellType);
+			checked = false;
+			break;
+		}
+
+		Logger.log(log);
+		return checked;
 	}
 }
