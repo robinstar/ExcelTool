@@ -14,6 +14,7 @@ import org.apache.poi.ss.usermodel.FormulaEvaluator;
 import org.apache.poi.ss.usermodel.Row;
 
 import tools.fjl.excel.CellIndex;
+import tools.fjl.excel.Logger;
 import tools.fjl.excel.BadParamException;
 
 public class CellListWorker extends BaseTool {
@@ -88,6 +89,7 @@ public class CellListWorker extends BaseTool {
 		Row targetRow = targetSheet.createRow(targetRowIndex);
 		File file = new File(source.getWorkbookName());
 		final String simpleName = file.getName();
+		Logger.log(simpleName);
 
 		int targetColumnIndex = 0;
 		targetRow.createCell(targetColumnIndex++).setCellValue(simpleName);
@@ -98,6 +100,7 @@ public class CellListWorker extends BaseTool {
 			System.err.println(errorLog);
 			String error = "没有对应的工作表";
 			targetRow.createCell(targetColumnIndex).setCellValue(error);
+			Logger.log(error);
 			return;
 		}
 
@@ -119,6 +122,10 @@ public class CellListWorker extends BaseTool {
 					System.err.println(errorLog);
 					error = "单元格缺失";
 				}
+			}
+
+			if (sourceCell != null && sourceCell.getCellType() == Cell.CELL_TYPE_BLANK) {
+				continue;
 			}
 
 			targetCell = targetRow.createCell(targetColumnIndex++);
